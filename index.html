@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SOFA AR Viewer</title>
+
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #000; touch-action: none;
+    }
+    #message {
+      position: fixed; top: 12px; left: 0; width: 100%;
+      z-index: 9999; text-align: center; color: white;
+      font: 15px Arial, sans-serif; text-shadow: 0 1px 4px #000;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="message">Scan the Hiro marker • Pinch with two fingers to zoom</div>
+
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true; alpha: true; antialias: true;"
+    arjs="sourceType: webcam; debugUIEnabled: false;">
+
+    <a-assets>
+      <a-asset-item id="sofaModel" src="./sofa.glb"></a-asset-item>
+    </a-assets>
+
+    <a-marker preset="hiro">
+      <a-entity
+        id="sofa"
+        gltf-model="#sofaModel"
+        position="0 0 0"
+        rotation="-90 0 0"
+        scale="1 1 1">
+      </a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // Two-finger pinch zoom for the 3D sofa.
+    (function () {
+      const sofa = document.querySelector('#sofa');
+      let currentScale = 1;
+      let previousDistance = null;
+
+      function getDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      document.addEventListener('touchstart', function (event) {
+        if (event.touches.length === 2) {
+          previousDistance = getDistance(event.touches[0], event.touches[1]);
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchmove', function (event) {
+        if (event.touches.length === 2 && previousDistance !== null) {
+          event.preventDefault();
+
+          const newDistance = getDistance(event.touches[0], event.touches[1]);
+          const zoomFactor = newDistance / previousDistance;
+
+          currentScale = Math.min(4, Math.max(0.2, currentScale * zoomFactor));
+          sofa.setAttribute('scale', {
+            x: currentScale,
+            y: currentScale,
+            z: currentScale
+          });
+
+          previousDistance = newDistance;
+        }
+      }, { passive: false });
+
+      document.addEventListener('touchend', function (event) {
+        if (event.touches.length < 2) {
+          previousDistance = null;
+        }
+      }, { passive: true });
+
+      document.addEventListener('touchcancel', function () {
+        previousDistance = null;
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>
